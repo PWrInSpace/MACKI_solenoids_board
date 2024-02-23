@@ -6,9 +6,5 @@
 #define TAG ":D"
 
 void hello_world(void) {
-    ESP_LOGI(TAG, "Hello world!")
-    
-    
-    
-    ;
+    ESP_LOGI(TAG, "Hello world!");
 }

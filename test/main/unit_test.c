@@ -1,4 +1,4 @@
-
+// Copyright 2024 PWrInSpace, Kuba
 #include <stdio.h>
 #include <string.h>
 #include "unity.h"
@@ -6,8 +6,7 @@
 static void print_banner(const char* text);
 
 
-void app_main(void)
-{
+void app_main(void) {
     /* These are the different ways of running registered tests.
      * In practice, only one of them is usually needed.
      *
@@ -27,7 +26,6 @@ void app_main(void)
     unity_run_menu();
 }
 
-static void print_banner(const char* text)
-{
+static void print_banner(const char* text) {
     printf("\n#### %s #####\n\n", text);
 }

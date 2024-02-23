@@ -13,9 +13,7 @@ void app_main(void) {
     while (1) {
         hello_world();
 
-        gpio_set_level(GPIO_NUM_2, gpio_level)
-        
-        ;
+        gpio_set_level(GPIO_NUM_2, gpio_level);
         gpio_level = !gpio_level;
 
         vTaskDelay(pdMS_TO_TICKS(1000));
