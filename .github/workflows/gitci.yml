@@ -14,9 +14,9 @@ jobs:
       with:
         esp_idf_version: v5.0.1
 
-  build_ESP32_tests:    
+  build_ESP32_tests:
     runs-on: ubuntu-latest
-      
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -24,14 +24,14 @@ jobs:
           submodules: 'recursive'
       - name: esp-idf build
         uses: espressif/esp-idf-ci-action@v1
-        with: 
+        with:
           esp_idf_version: v5.0.1
           path: 'test'
 
 
   clang-format-checking:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
