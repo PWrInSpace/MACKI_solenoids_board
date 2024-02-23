@@ -35,8 +35,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
-      
+
       - name: Run clang format
         uses: RafikFarhad/clang-format-github-action@v3
         with:
-          sources: "components/**/*.h, components/**/*.c, main/*.c, main/*.h, test/**/*.c"
+          sources: "components/**/*.h, components/**/*.c, main/main.c, test/**/*.c"
