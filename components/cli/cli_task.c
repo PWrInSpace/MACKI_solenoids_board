@@ -74,7 +74,7 @@ void _configure_linenoise(uint8_t command_max_len) {
     linenoiseSetMaxLineLen(command_max_len);
 
     // Don't return empty lines
-    linenoiseAllowEmpty(false);
+    linenoiseAllowEmpty(true);
 }
 
 bool cli_init(uint8_t command_max_len) {
@@ -105,10 +105,31 @@ static void _check_escape_sequences(void) {
     }
 }
 
+static void _parse_line(char* line) {
+    int return_code;
+
+    esp_err_t err = esp_console_run(line, &return_code);
+    if (err == ESP_ERR_NOT_FOUND || err == ESP_ERR_INVALID_ARG) {
+        CLI_WRITE_E("Unrecognized command or command was empty\n");
+    } else if (err != ESP_OK) {
+        CLI_WRITE_E("Internal error: %s\n", esp_err_to_name(err));
+    } else if (err == ESP_OK && return_code != ESP_OK) {
+        CLI_WRITE_E("Command returned non-zero error code: 0x%x (%s)\n",
+                    return_code, esp_err_to_name(return_code));
+    } else if (err == ESP_ERR_INVALID_STATE) {
+        CLI_WRITE_E("esp_console_init wasn't called - aborting cli task");
+        cli_deinit();
+    }
+}
+
+static void _add_line_to_history(char *line) {
+    if (strlen(line) > 0) {
+        linenoiseHistoryAdd(line);
+    }
+}
+
 static void _cli_task(void *arg) {
     char* line;
-    int return_code;
-    esp_err_t err;
 
     _print_welcome_message();
     _check_escape_sequences();
@@ -116,25 +137,11 @@ static void _cli_task(void *arg) {
     while (true) {
         // The line is returned when ENTER is pressed, so this functions blocks the task
         line = linenoise(CLI_PROMPT);
-        if (line == NULL) {
+        if (line != NULL) {
+            _add_line_to_history(line);
+            _parse_line(line);
+        } else {
             CLI_WRITE_E("Error during line reading");
-        }
-
-        if (strlen(line) > 0) {
-            linenoiseHistoryAdd(line);
-        }
-
-        err = esp_console_run(line, &return_code);
-        if (err == ESP_ERR_NOT_FOUND || err == ESP_ERR_INVALID_ARG) {
-            CLI_WRITE_E("Unrecognized command or command was empty\n");
-        } else if (err == ESP_OK && return_code != ESP_OK) {
-            CLI_WRITE_E("Command returned non-zero error code: 0x%x (%s)\n",
-                        return_code, esp_err_to_name(return_code));
-        } else if (err == ESP_ERR_INVALID_STATE) {
-            CLI_WRITE_E("esp_console_init wasn't called - aborting cli task");
-            cli_deinit();
-        } else if (err != ESP_OK) {
-            CLI_WRITE_E("Internal error: %s\n", esp_err_to_name(err));
         }
 
         linenoiseFree(line);  // allocates line on the heap
