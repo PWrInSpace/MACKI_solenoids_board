@@ -1,21 +1,27 @@
 // Copyright 2024 PWrInSpace, Kuba
-#include <stdint.h>
-
-#include "driver/gpio.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "hello_world.h"
+#include "esp_log.h"
+#include "esp_console.h"
+#include "cli_task.h"
+#define TAG "Main"
 
 void app_main(void) {
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+    ESP_LOGI(TAG, "Command history disabled");
 
-    uint32_t gpio_level = 1;
-    while (1) {
-        hello_world();
+    printf("\033[0;35m\n"
+           "_|      _|    _|_|      _|_|_|  _|    _|  _|_|_|\n"
+           "_|_|  _|_|  _|    _|  _|        _|  _|      _|  \n"
+           "_|  _|  _|  _|_|_|_|  _|        _|_|        _|  \n"
+           "_|      _|  _|    _|  _|        _|  _|      _|  \n"
+           "_|      _|  _|    _|    _|_|_|  _|    _|  _|_|_|\n"
+           "\n\033[0m");
 
-        gpio_set_level(GPIO_NUM_2, gpio_level);
-        gpio_level = !gpio_level;
+    /* Register commands */
+    esp_console_config_t console_config = {
+        .max_cmdline_args = 8,
+        .max_cmdline_length = 256,
+    };
+    esp_console_init(&console_config);
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+    cli_init(console_config.max_cmdline_length);
+    cli_run();
 }
