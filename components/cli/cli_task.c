@@ -20,7 +20,7 @@ static struct {
 } gb;
 
 
-bool _configure_default_uart(void) {
+static bool _configure_default_uart(void) {
     // Drain stdout before reconfiguring it
     fflush(stdout);
     fsync(fileno(stdout));
@@ -58,7 +58,7 @@ bool _configure_default_uart(void) {
     return true;
 }
 
-void _configure_linenoise(uint8_t command_max_len) {
+static void _configure_linenoise(uint8_t command_max_len) {
     // Configure linenoise line completion library
     // Enable multiline editing.
     linenoiseSetMultiLine(1);

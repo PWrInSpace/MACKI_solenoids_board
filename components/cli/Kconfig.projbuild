@@ -4,7 +4,7 @@ menu "CLI task"
         default ""
 
     config CLI_TASK_STACK_DEPTH
-        int "Tasl stack depth"
+        int "Task stack depth"
         range 1024 65536
         default 4096
 
