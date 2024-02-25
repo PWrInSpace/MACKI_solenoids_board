@@ -89,9 +89,9 @@ bool cli_init(uint8_t command_max_len) {
 
 static void _print_welcome_message(void) {
     CLI_WRITE("\n"
-           "Type 'help' to get the list of commands.\n"
-           "Use UP/DOWN arrows to navigate through command history.\n"
-           "Press TAB when typing command name to auto-complete.\n");
+              "Type 'help' to get the list of commands.\n"
+              "Use UP/DOWN arrows to navigate through command history.\n"
+              "Press TAB when typing command name to auto-complete.\n");
 }
 
 static void _check_escape_sequences(void) {
