@@ -5,7 +5,6 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_console.h"
 #include "driver/uart.h"
 #include "linenoise/linenoise.h"
 #include "esp_vfs_dev.h"
@@ -109,13 +108,13 @@ static void _parse_line(char* line) {
     int return_code;
 
     esp_err_t err = esp_console_run(line, &return_code);
-    if (err == ESP_ERR_NOT_FOUND || err == ESP_ERR_INVALID_ARG) {
-        CLI_WRITE_E("Unrecognized command or command was empty\n");
-    } else if (err != ESP_OK) {
-        CLI_WRITE_E("Internal error: %s\n", esp_err_to_name(err));
+    if (err == ESP_ERR_NOT_FOUND) {
+        CLI_WRITE_E("Unrecognized command\n");
     } else if (err == ESP_OK && return_code != ESP_OK) {
         CLI_WRITE_E("Command returned non-zero error code: 0x%x (%s)\n",
                     return_code, esp_err_to_name(return_code));
+    } else if (err != ESP_OK && err != ESP_ERR_INVALID_ARG) {
+        CLI_WRITE_E("Internal error: %s\n", esp_err_to_name(err));
     } else if (err == ESP_ERR_INVALID_STATE) {
         CLI_WRITE_E("esp_console_init wasn't called - aborting cli task");
         cli_deinit();

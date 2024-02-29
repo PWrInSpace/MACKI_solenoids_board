@@ -5,6 +5,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "esp_console.h"
+
 
 #define CLI_PROMPT CONFIG_CLI_PROMPT
 #define CLI_TASK_STACK_DEPTH CONFIG_CLI_TASK_STACK_DEPTH
