@@ -46,11 +46,11 @@ static bool _set_pin(uint8_t valve_index, valve_state_t state, uint32_t close_ti
 }
 
 bool valve_open(uint8_t valve_index) {
-    return _set_pin(valve_index, VALVE_OPEN, false);
+    return _set_pin(valve_index, VALVE_OPEN, DO_NOT_CLOSE);
 }
 
 bool valve_close(uint8_t valve_index) {
-    return _set_pin(valve_index, VALVE_CLOSE, false);
+    return _set_pin(valve_index, VALVE_CLOSE, DO_NOT_CLOSE);
 }
 
 bool valve_time_open(uint8_t valve_index, uint16_t time_ms) {
