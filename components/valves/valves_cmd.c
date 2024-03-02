@@ -35,6 +35,7 @@ static int cmd_valve_open(int argc, char **argv) {
     }
 
     valve_open(args_open_close.valve_number->ival[0]);
+    CLI_WRITE_G("Valve open");
 
     return 0;
 }
@@ -46,6 +47,7 @@ static int cmd_valve_close(int argc, char **argv) {
     }
 
     valve_close(args_open_close.valve_number->ival[0]);
+    CLI_WRITE_G("Valve close");
 
     return 0;
 }
@@ -62,6 +64,7 @@ static int cmd_valve_time_open(int argc, char **argv) {
     }
 
     valve_time_open(args_time_open.valve_number->ival[0], args_time_open.time_ms->ival[0]);
+    CLI_WRITE_G("Valve open for %d", args_time_open.time_ms->ival[0]);
 
     return 0;
 }

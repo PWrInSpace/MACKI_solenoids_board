@@ -18,7 +18,7 @@ void app_main(void) {
            "_|      _|  _|    _|    _|_|_|  _|    _|  _|_|_|\n"
            "\n\033[0m");
 
-    uint8_t valves_pins[NUMBER_OF_VALVES] = {2, 5};
+    uint8_t valves_pins[NUMBER_OF_VALVES] = {2, 13};
 
     valves_init(valves_pins);
 
