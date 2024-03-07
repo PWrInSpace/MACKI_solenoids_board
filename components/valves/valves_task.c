@@ -1,3 +1,5 @@
+// Copyright 2024 PWrInSpace, Kuba
+
 #include <memory.h>
 #include "valves_task.h"
 #include "freertos/FreeRTOS.h"
@@ -115,19 +117,26 @@ bool valves_init(uint8_t valves_pins[NUMBER_OF_VALVES]) {
 
     rtos.data_mutex = xSemaphoreCreateMutex();
     if (rtos.data_mutex == NULL) {
-        goto deinit;
+        goto abort;
     }
 
-    xTaskCreatePinnedToCore(
-        _valves_task, "ValvesTask", 8192, NULL, 0, &rtos.task_handle, 1
-    );
+    xTaskCreatePinnedToCore(_valves_task, "ValvesTask", 8192,
+                            NULL, 0, &rtos.task_handle, 1);
     if (rtos.task_handle == NULL) {
-        goto deinit;
+        goto abort;
     }
 
     return true;
 
-deinit:
-    // TBD
+abort:
+    for (uint8_t i = 0; i < NUMBER_OF_VALVES; ++i) {
+        gpio_reset_pin(valves_data[i].gpio_pin);
+    }
+
+    if (rtos.data_mutex != NULL) {
+        vSemaphoreDelete(rtos.data_mutex);
+        rtos.data_mutex = NULL;
+    }
+
     return false;
 }

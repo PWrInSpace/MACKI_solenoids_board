@@ -1,3 +1,5 @@
+// Copyright 2024 PWrInSpace, Kuba
+
 #include "valves_cmd.h"
 #include "valves_task.h"
 #include "argtable3/argtable3.h"
@@ -85,8 +87,7 @@ static int cmd_valve_read_data(int argc, char **argv) {
     return 0;
 }
 
-bool cmd_register_valves(void)
-{
+bool cmd_register_valves(void) {
     args_open_close.valve_number = arg_int1(NULL, NULL, "valve_number", "Valve number");
     args_open_close.end = arg_end(1);
 
