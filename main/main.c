@@ -2,6 +2,7 @@
 #include "esp_log.h"
 #include "esp_console.h"
 #include "cli_task.h"
+#include "ble_task.h"
 #define TAG "Main"
 
 void app_main(void) {
@@ -24,4 +25,5 @@ void app_main(void) {
 
     cli_init(console_config.max_cmdline_length);
     cli_run();
+    ble_init_task(NULL);
 }
