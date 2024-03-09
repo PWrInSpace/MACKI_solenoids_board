@@ -16,7 +16,7 @@ typedef enum {
 
 typedef enum {
     VALVE_READY = 1,
-    VALVE_BUSSY,
+    VALVE_BUSY,
 } valve_status_t;
 
 typedef struct {

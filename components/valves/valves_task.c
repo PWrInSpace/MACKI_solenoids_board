@@ -29,7 +29,7 @@ static bool _set_pin(uint8_t valve_index, valve_state_t state, uint32_t close_ti
     }
 
     valve_data_t *valve = &valves_data[valve_index];
-    if (valve->valve_status == VALVE_BUSSY) {
+    if (valve->valve_status == VALVE_BUSY) {
         xSemaphoreGive(rtos.data_mutex);
         return false;
     }
@@ -38,7 +38,7 @@ static bool _set_pin(uint8_t valve_index, valve_state_t state, uint32_t close_ti
     gpio_set_level(valve->gpio_pin, valve->valve_state);
 
     if (close_time != DO_NOT_CLOSE) {
-        valve->valve_status = VALVE_BUSSY;
+        valve->valve_status = VALVE_BUSY;
         valves_close_time[valve_index] = pdTICKS_TO_MS(xTaskGetTickCount()) + close_time;
     }
 
@@ -74,6 +74,13 @@ bool valve_get_data(uint8_t valve_index, valve_data_t *out) {
     return true;
 }
 
+static void _close_valve_after_time(valve_data_t *valve) {
+    valve->time_to_close = TIME_TO_CLOSE_NULL;
+    valve->valve_status = VALVE_READY;
+    valve->valve_state = VALVE_CLOSE;
+    gpio_set_level(valve->gpio_pin, VALVE_CLOSE);
+}
+
 static void _check_time_to_close(void) {
     if (xSemaphoreTake(rtos.data_mutex, 10) != pdTRUE) {
         return;
@@ -83,14 +90,11 @@ static void _check_time_to_close(void) {
     for (size_t i = 0; i < NUMBER_OF_VALVES; ++i) {
         valve = &valves_data[i];
 
-        if (valve->valve_status == VALVE_BUSSY) {
+        if (valve->valve_status == VALVE_BUSY) {
             valve->time_to_close = valves_close_time[i] - pdTICKS_TO_MS(xTaskGetTickCount());
 
             if (valve->time_to_close <= 0) {
-                valve->time_to_close = TIME_TO_CLOSE_NULL;
-                valve->valve_status = VALVE_READY;
-                valve->valve_state = VALVE_CLOSE;
-                gpio_set_level(valve->gpio_pin, VALVE_CLOSE);
+                _close_valve_after_time(valve);
             }
         }
     }
@@ -113,6 +117,7 @@ bool valves_init(uint8_t valves_pins[NUMBER_OF_VALVES]) {
         valves_data[i].time_to_close = TIME_TO_CLOSE_NULL;
         valves_data[i].gpio_pin = valves_pins[i];
         gpio_set_direction(valves_data[i].gpio_pin, GPIO_MODE_OUTPUT);
+        valve_close(valves_data[i].gpio_pin);
     }
 
     rtos.data_mutex = xSemaphoreCreateMutex();

@@ -4,6 +4,7 @@
 #include "cli_task.h"
 #include "valves_cmd.h"
 #include "valves_task.h"
+#include "driver/gpio.h"
 
 #define TAG "Main"
 
@@ -18,7 +19,7 @@ void app_main(void) {
            "_|      _|  _|    _|    _|_|_|  _|    _|  _|_|_|\n"
            "\n\033[0m");
 
-    uint8_t valves_pins[NUMBER_OF_VALVES] = {2, 13};
+    uint8_t valves_pins[NUMBER_OF_VALVES] = {GPIO_NUM_2, GPIO_NUM_13};
 
     valves_init(valves_pins);
 
