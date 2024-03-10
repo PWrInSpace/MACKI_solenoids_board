@@ -70,13 +70,14 @@ static ble_gap_t ble_gap_conf = {.conf_type = BLE_GAP_BROADCASTER_CENTRAL,
 static ble_gatts_t ble_gatt_conf = {
     .profiles_num = PROFILE_TOTAL_NUM,
     .event_handler_cb = gatts_event_handler,
-    .profiles = {[CONSOLE_SERVICE] = {.gatts_cb = gatt_profile_a_event_handler,
+    .profiles = {[CONSOLE_SERVICE] = {.gatts_cb = gatt_profile_console_event_handler,
                                       .gatts_if = ESP_GATT_IF_NONE}}};
 
 static ble_config_t ble_conf = {.gap_config = &ble_gap_conf,
                                 .gatt_config = &ble_gatt_conf,
                                 .bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT()};
 
+// TODO(Glibus): in the future, look how gatts database could be defined with 128bit UUIDs
 static uint16_t profile_a_handle_table[CONSOLE_MAX_IDX];
 const esp_gatts_attr_db_t gatt_profile_macki_db[CONSOLE_MAX_IDX] = {
     [CONSOLE_SERVICE_IDX] = {{ESP_GATT_AUTO_RSP},
@@ -143,7 +144,7 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
     }
 }
 
-void gatt_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
+void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                   esp_ble_gatts_cb_param_t* param) {
     switch (event) {
         case ESP_GATTS_REG_EVT:
