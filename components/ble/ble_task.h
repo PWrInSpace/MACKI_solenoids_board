@@ -12,6 +12,11 @@
 
 #define BLE_DEVICE_NAME "MACKI"
 
+typedef struct {
+    uint8_t* prepare_buf;
+    int prepare_len;
+} prepare_type_env_t;
+
 /*!
  * \brief GAP event handler. Mainly responsible for handling advertisement and connection events in
  * the GAP layer.
@@ -30,6 +35,12 @@ void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
  */
 void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                          esp_ble_gatts_cb_param_t* param);
+
+void example_exec_write_event_env(prepare_type_env_t* prepare_write_env,
+                                  esp_ble_gatts_cb_param_t* param);
+
+void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t* prepare_write_env,
+                                     esp_ble_gatts_cb_param_t* param);
 
 /*!
  * \brief Initialize BLE stack and start advertising. Can be called as RTOS task if necessary - not

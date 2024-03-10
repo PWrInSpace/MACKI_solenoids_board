@@ -26,6 +26,7 @@ const uint8_t char_prop_read_write_notify =
 #define PREPARE_BUF_MAX_SIZE 1024
 #define CHAR_DECLARATION_SIZE (sizeof(uint8_t))
 #define SVC_INST_ID 0
+prepare_type_env_t prepare_write_env;
 
 static uint8_t raw_adv_data[] = {
     /* flags */
@@ -46,6 +47,9 @@ static uint8_t raw_scan_rsp_data[] = {
 
 const uint8_t char_value[4] = {0x11, 0x22, 0x33, 0x44};
 
+/*! \brief Project specific GATT profile defines,
+ *  \note READ means server (ESP32) read, analogically write means server (ESP32) write
+ */
 typedef enum { CONSOLE_SERVICE, PROFILE_TOTAL_NUM } rosalia_ble_gatt_profile_names_t;
 
 typedef enum {
@@ -87,19 +91,21 @@ const esp_gatts_attr_db_t gatt_profile_macki_db[CONSOLE_MAX_IDX] = {
     [CONSOLE_READ_IDX] = {{ESP_GATT_AUTO_RSP},
                           {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid,
                            ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE,
-                           (uint8_t*)&char_prop_read_write_notify}},
+                           (uint8_t*)&char_prop_read}},
     [CONSOLE_READ_VAL_IDX] = {{ESP_GATT_AUTO_RSP},
                               {ESP_UUID_LEN_16, (uint8_t*)&GATTS_CONSOLE_READ_CHAR_UUID,
-                               ESP_GATT_PERM_READ, GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(char_value),
+                               ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+                               GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(char_value),
                                (uint8_t*)&char_value}},
     [CONSOLE_WRITE_IDX] = {{ESP_GATT_AUTO_RSP},
                            {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid,
                             ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE,
-                            (uint8_t*)&char_prop_read_write_notify}},
+                            (uint8_t*)&char_prop_write}},
     [CONSOLE_WRITE_VAL_IDX] = {
         {ESP_GATT_AUTO_RSP},
-        {ESP_UUID_LEN_16, (uint8_t*)&GATTS_CONSOLE_WRITE_CHAR_UUID, ESP_GATT_PERM_WRITE,
-         GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t*)&char_value}}};
+        {ESP_UUID_LEN_16, (uint8_t*)&GATTS_CONSOLE_WRITE_CHAR_UUID,
+         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(char_value),
+         (uint8_t*)&char_value}}};
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
     switch (event) {
@@ -145,7 +151,7 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
 }
 
 void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
-                                  esp_ble_gatts_cb_param_t* param) {
+                                        esp_ble_gatts_cb_param_t* param) {
     switch (event) {
         case ESP_GATTS_REG_EVT:
             esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(BLE_DEVICE_NAME);
@@ -170,7 +176,7 @@ void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOGE(BLE_APP_TAG, "create attr table failed, error code = %x", create_attr_ret);
             }
             break;
-        case ESP_GATTS_CREAT_ATTR_TAB_EVT: {
+        case ESP_GATTS_CREAT_ATTR_TAB_EVT:
             if (param->add_attr_tab.status != ESP_GATT_OK) {
                 ESP_LOGE(BLE_APP_TAG, "create attribute table failed, error code=0x%x",
                          param->add_attr_tab.status);
@@ -188,7 +194,59 @@ void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 esp_ble_gatts_start_service(profile_a_handle_table[CONSOLE_SERVICE_IDX]);
             }
             break;
-        }
+        case ESP_GATTS_WRITE_EVT:
+            if (!param->write.is_prep) {
+                // the data length of gattc write  must be less than
+                // GATTS_DEMO_CHAR_VAL_LEN_MAX.
+                // ESP_LOGI(BLE_APP_TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :",
+                //          param->write.handle, param->write.len);
+                // esp_log_buffer_hex(BLE_APP_TAG, param->write.value, param->write.len);
+                // if (profile_a_handle_table[IDX_CHAR_CFG_A] == param->write.handle &&
+                //     param->write.len == 2) {
+                //     uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
+                //     if (descr_value == 0x0001) {
+                //         ESP_LOGI(BLE_APP_TAG, "notify enable");
+                //         uint8_t notify_data[15];
+                //         for (int i = 0; i < sizeof(notify_data); ++i) {
+                //             notify_data[i] = i % 0xff;
+                //         }
+                //         // the size of notify_data[] need less than MTU size
+                //         esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id,
+                //                                     profile_a_handle_table[CONSOLE_WRITE_VAL_IDX],
+                //                                     sizeof(notify_data), notify_data, false);
+                //     } else if (descr_value == 0x0002) {
+                //         ESP_LOGI(BLE_APP_TAG, "indicate enable");
+                //         uint8_t indicate_data[15];
+                //         for (int i = 0; i < sizeof(indicate_data); ++i) {
+                //             indicate_data[i] = i % 0xff;
+                //         }
+                //         // the size of indicate_data[] need less than MTU size
+                //         esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id,
+                //                                     profile_a_handle_table[CONSOLE_WRITE_VAL_IDX],
+                //                                     sizeof(indicate_data), indicate_data, true);
+                //     } else if (descr_value == 0x0000) {
+                //         ESP_LOGI(BLE_APP_TAG, "notify/indicate disable ");
+                //     } else {
+                //         ESP_LOGE(BLE_APP_TAG, "unknown descr value");
+                //         esp_log_buffer_hex(BLE_APP_TAG, param->write.value, param->write.len);
+                //     }
+                // }
+                /* send response when param->write.need_rsp is true*/
+                // if (param->write.need_rsp) {
+                //     esp_ble_gatts_send_response(gatts_if, param->write.conn_id,
+                //                                 param->write.trans_id, ESP_GATT_OK, NULL);
+                // }
+            } else {
+                /* handle prepare write */
+                example_prepare_write_event_env(gatts_if, &prepare_write_env, param);
+            }
+            break;
+        case ESP_GATTS_EXEC_WRITE_EVT:
+            // the length of gattc prepare write data must be less than
+            // GATTS_DEMO_CHAR_VAL_LEN_MAX.
+            ESP_LOGI(BLE_APP_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
+            example_exec_write_event_env(&prepare_write_env, param);
+            break;
         case ESP_GATTS_READ_EVT:
             ESP_LOGI(BLE_APP_TAG, "ESP_GATTS_READ_EVT");
             break;
@@ -222,7 +280,16 @@ void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                      param->disconnect.reason);
             esp_ble_gap_start_advertising(&ble_conf.gap_config->adv_params);
             break;
+        case ESP_GATTS_STOP_EVT:
+        case ESP_GATTS_OPEN_EVT:
+        case ESP_GATTS_CANCEL_OPEN_EVT:
+        case ESP_GATTS_CLOSE_EVT:
+        case ESP_GATTS_LISTEN_EVT:
+        case ESP_GATTS_CONGEST_EVT:
+        case ESP_GATTS_UNREG_EVT:
+        case ESP_GATTS_DELETE_EVT:
         default:
+            ESP_LOGE(BLE_APP_TAG, "Unhandled GATT event: %d", event);
             break;
     }
 }
@@ -252,6 +319,68 @@ void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
             }
         }
     } while (0);
+}
+
+void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t* prepare_write_env,
+                                     esp_ble_gatts_cb_param_t* param) {
+    ESP_LOGI(BLE_APP_TAG, "prepare write, handle = %d, value len = %d", param->write.handle,
+             param->write.len);
+    esp_gatt_status_t status = ESP_GATT_OK;
+    if (prepare_write_env->prepare_buf == NULL) {
+        prepare_write_env->prepare_buf = (uint8_t*)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
+        prepare_write_env->prepare_len = 0;
+        if (prepare_write_env->prepare_buf == NULL) {
+            ESP_LOGE(BLE_APP_TAG, "%s, Gatt_server prep no mem", __func__);
+            status = ESP_GATT_NO_RESOURCES;
+        }
+    } else {
+        if (param->write.offset > PREPARE_BUF_MAX_SIZE) {
+            status = ESP_GATT_INVALID_OFFSET;
+        } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
+            status = ESP_GATT_INVALID_ATTR_LEN;
+        }
+    }
+    /*send response when param->write.need_rsp is true */
+    if (param->write.need_rsp) {
+        esp_gatt_rsp_t* gatt_rsp = (esp_gatt_rsp_t*)malloc(sizeof(esp_gatt_rsp_t));
+        if (gatt_rsp != NULL) {
+            gatt_rsp->attr_value.len = param->write.len;
+            gatt_rsp->attr_value.handle = param->write.handle;
+            gatt_rsp->attr_value.offset = param->write.offset;
+            gatt_rsp->attr_value.auth_req = ESP_GATT_AUTH_REQ_NONE;
+            memcpy(gatt_rsp->attr_value.value, param->write.value, param->write.len);
+            esp_err_t response_err = esp_ble_gatts_send_response(
+                gatts_if, param->write.conn_id, param->write.trans_id, status, gatt_rsp);
+            if (response_err != ESP_OK) {
+                ESP_LOGE(BLE_APP_TAG, "Send response error");
+            }
+            free(gatt_rsp);
+        } else {
+            ESP_LOGE(BLE_APP_TAG, "%s, malloc failed", __func__);
+        }
+    }
+    if (status != ESP_GATT_OK) {
+        return;
+    }
+    memcpy(prepare_write_env->prepare_buf + param->write.offset, param->write.value,
+           param->write.len);
+    prepare_write_env->prepare_len += param->write.len;
+}
+
+void example_exec_write_event_env(prepare_type_env_t* prepare_write_env,
+                                  esp_ble_gatts_cb_param_t* param) {
+    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC &&
+        prepare_write_env->prepare_buf) {
+        esp_log_buffer_hex(BLE_APP_TAG, prepare_write_env->prepare_buf,
+                           prepare_write_env->prepare_len);
+    } else {
+        ESP_LOGI(BLE_APP_TAG, "ESP_GATT_PREP_WRITE_CANCEL");
+    }
+    if (prepare_write_env->prepare_buf) {
+        free(prepare_write_env->prepare_buf);
+        prepare_write_env->prepare_buf = NULL;
+    }
+    prepare_write_env->prepare_len = 0;
 }
 
 void ble_init_task(void* arg) {
