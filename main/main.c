@@ -2,9 +2,12 @@
 #include "esp_log.h"
 #include "esp_console.h"
 #include "cli_task.h"
+#include "driver/gpio.h"
+
+#include "tensometer_cmd.h"
+#include "tensometer.h"
 #include "valves_cmd.h"
 #include "valves_task.h"
-#include "driver/gpio.h"
 
 #define TAG "Main"
 
@@ -22,6 +25,7 @@ void app_main(void) {
     uint8_t valves_pins[NUMBER_OF_VALVES] = {GPIO_NUM_2, GPIO_NUM_13};
 
     valves_init(valves_pins);
+    tensometer_init(GPIO_NUM_10, GPIO_NUM_9);
 
     esp_console_config_t console_config = {
         .max_cmdline_args = 8,
@@ -30,6 +34,7 @@ void app_main(void) {
     esp_console_init(&console_config);
 
     cmd_register_valves();
+    cmd_register_tensometer();
     cli_init(console_config.max_cmdline_length);
     cli_run();
 }
