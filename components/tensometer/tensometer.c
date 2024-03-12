@@ -1,20 +1,24 @@
 // Copyright 2024 PWrInSpace, Kuba
 
 #include "HX711.h"
+#include "esp_log.h"
 
-#define READINGS_NB 10
+#define READINGS_NB 1
+
+#define TAG "HX"
 
 void tensometer_init(gpio_num_t dout, gpio_num_t sck) {
     HX711_init(dout, sck, eGAIN_128);  // 128 gain for channel A
-    HX711_power_up();  // I thin it is not necessary
+    // HX711_power_up();  // I thin it is not necessary
 }
 
 bool tensometer_read(float *out) {
-    if (HX711_is_ready() == false) {
-        return false;
-    }
+    // if (HX711_is_ready() == false) {
+    //     ESP_LOGE(TAG, "Hx is not ready :C");
+    //     return false;
+    // }
 
-    *out = HX711_get_units(READINGS_NB);
+    *out = HX711_read();
     return true;
 }
 

@@ -37,7 +37,7 @@ void HX711_init(gpio_num_t dout, gpio_num_t pd_sck, HX711_GAIN gain) {
     HX711_set_gain(gain);
 }
 
-bool HX711_is_ready() { return gpio_get_level(GPIO_DOUT); }
+bool HX711_is_ready() { return gpio_get_level(GPIO_DOUT) == 0; }
 
 void HX711_set_gain(HX711_GAIN gain) {
     GAIN = gain;
@@ -62,14 +62,17 @@ uint8_t HX711_shiftIn() {
 unsigned long HX711_read() {
     gpio_set_level(GPIO_PD_SCK, LOW);
     // wait for the chip to become ready
+    ESP_LOGI(DEBUGTAG, "waiting :blehhh");
     while (HX711_is_ready()) {
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        ets_delay_us(CLOCK_DELAY_US);
     }
 
     unsigned long value = 0;
 
+    ESP_LOGI(DEBUGTAG, "START READING");
     //--- Enter critical section ----
     portDISABLE_INTERRUPTS();
+
 
     for (int i = 0; i < 24; i++) {
         gpio_set_level(GPIO_PD_SCK, HIGH);
@@ -92,6 +95,7 @@ unsigned long HX711_read() {
     }
     portENABLE_INTERRUPTS();
     //--- Exit critical section ----
+    ESP_LOGI(DEBUGTAG, "END READING");
 
     value = value ^ 0x800000;
 
