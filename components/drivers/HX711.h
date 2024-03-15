@@ -1,73 +1,142 @@
+/*
+ * Copyright (c) 2019 Ruslan V. Uss <unclerus@gmail.com>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of itscontributors
+ *    may be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
-#ifndef HX711_h
-#define HX711_h
+/**
+ * @file hx711.h
+ * @defgroup hx711 hx711
+ * @{
+ *
+ * ESP-IDF driver for HX711 24-bit ADC for weigh scales
+ *
+ * Copyright (c) 2019 Ruslan V. Uss <unclerus@gmail.com>
+ *
+ * BSD Licensed as described in the file LICENSE
+ */
+#ifndef __HX711_H__
+#define __HX711_H__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
-#include "freertos/event_groups.h"
-#include "driver/gpio.h"
+#include <driver/gpio.h>
+#include <esp_err.h>
+#include <stdbool.h>
 
-
-typedef enum HX711_GAIN
-{
-	eGAIN_128 = 1,
-	eGAIN_64 = 3,
-	eGAIN_32 = 2
-}HX711_GAIN;
-
-
-// define clock and data pin, channel, and gain factor
-// channel selection is made by passing the appropriate gain: 128 or 64 for channel A, 32 for channel B
-// gain: 128 or 64 for channel A; channel B works with 32 gain factor only
-void HX711_init(gpio_num_t dout, gpio_num_t pd_sck, HX711_GAIN gain);
-
-
-// check if HX711 is ready
-// from the datasheet: When output data is not ready for retrieval, digital output pin DOUT is high. Serial clock
-// input PD_SCK should be low. When DOUT goes to low, it indicates data is ready for retrieval.
-bool HX711_is_ready();
-
-// set the gain factor; takes effect only after a call to read()
-// channel A can be set for a 128 or 64 gain; channel B has a fixed 32 gain
-// depending on the parameter, the channel is also set to either A or B
-void HX711_set_gain(HX711_GAIN gain);
-
-// waits for the chip to be ready and returns a reading
-unsigned long HX711_read();
-
-// returns an average reading; times = how many times to read
-unsigned long HX711_read_average(char times );
-
-// returns (read_average() - OFFSET), that is the current value without the tare weight; times = how many readings to do
-unsigned long HX711_get_value(char times);
-
-// returns get_value() divided by SCALE, that is the raw value divided by a value obtained via calibration
-// times = how many readings to do
-float HX711_get_units(char times);
-
-// set the OFFSET value for tare weight; times = how many times to read the tare value
-void HX711_tare();
-
-// set the SCALE value; this value is used to convert the raw data to "human readable" data (measure units)
-void HX711_set_scale(float scale );
-
-// get the current SCALE
-float HX711_get_scale();
-
-// set OFFSET, the value that's subtracted from the actual reading (tare weight)
-void HX711_set_offset(unsigned long offset);
-
-// get the current OFFSET
-unsigned long HX711_get_offset();
-
-// puts the chip into power down mode
-void HX711_power_down();
-
-// wakes up the chip after power down mode
-void HX711_power_up();
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+/**
+ * Gain/channel
+ */
+typedef enum {
+    HX711_GAIN_A_128 = 0,  //!< Channel A, gain factor 128
+    HX711_GAIN_B_32,       //!< Channel B, gain factor 32
+    HX711_GAIN_A_64        //!< Channel A, gain factor 64
+} hx711_gain_t;
+
+/**
+ * Device descriptor
+ */
+typedef struct {
+    gpio_num_t dout;
+    gpio_num_t pd_sck;
+    hx711_gain_t gain;
+} hx711_t;
+
+/**
+ * @brief Initialize device
+ *
+ * Prepare GPIO pins, power up device and set gain
+ *
+ * @param dev Device descriptor
+ * @return `ESP_OK` on success, `ESP_ERR_TIMEOUT` if device not found
+ */
+esp_err_t hx711_init(hx711_t *dev);
+
+/**
+ * @brief Set device power up/down
+ *
+ * @param dev Device descriptor
+ * @param down Set device power down if true, power up otherwise
+ * @return `ESP_OK` on success
+ */
+esp_err_t hx711_power_down(hx711_t *dev, bool down);
+
+/**
+ * @brief Set device gain and channel
+ *
+ * @param dev Device descriptor
+ * @param gain Gain + channel value
+ * @return `ESP_OK` on success, `ESP_ERR_TIMEOUT` if device not found
+ */
+esp_err_t hx711_set_gain(hx711_t *dev, hx711_gain_t gain);
+
+/**
+ * @brief Check if device ready to send data
+ *
+ * @param dev Device descriptor
+ * @param[out] ready true if data ready
+ * @return `ESP_OK` on success
+ */
+esp_err_t hx711_is_ready(hx711_t *dev, bool *ready);
+
+/**
+ * @brief Wait for device to become ready
+ *
+ * @param dev Device descriptor
+ * @param timeout_ms Maximum time to wait, milliseconds
+ * @return `ESP_OK` on success
+ */
+esp_err_t hx711_wait(hx711_t *dev, size_t timeout_ms);
+
+/**
+ * @brief Read raw data from device.
+ *
+ * Please call this function only when device is ready,
+ * otherwise communication errors may occur
+ *
+ * @param dev Device descriptor
+ * @param[out] data Raw ADC data
+ * @return `ESP_OK` on success
+ */
+esp_err_t hx711_read_data(hx711_t *dev, int32_t *data);
+
+/**
+ * @brief Read average data
+ *
+ * @param dev Device descriptor
+ * @param times Count of samples to read
+ * @param[out] data Average ADC data
+ * @return `ESP_OK` on success
+ */
+esp_err_t hx711_read_average(hx711_t *dev, size_t times, int32_t *data);
+
+#ifdef __cplusplus
+}
+#endif
+
+/**@}*/
+
+#endif /* __HX711_H__ */

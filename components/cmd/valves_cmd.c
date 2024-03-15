@@ -1,9 +1,9 @@
 // Copyright 2024 PWrInSpace, Kuba
 
-#include "valves_cmd.h"
 #include "valves_task.h"
 #include "argtable3/argtable3.h"
 #include "cli_task.h"
+#include "cmd.h"
 
 static struct {
     struct arg_int *valve_number;

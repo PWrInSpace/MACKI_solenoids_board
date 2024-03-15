@@ -4,11 +4,10 @@
 #include "cli_task.h"
 #include "driver/gpio.h"
 
-#include "tensometer_cmd.h"
-#include "tensometer.h"
-#include "valves_cmd.h"
+#include "cmd.h"
+#include "load_cell.h"
 #include "valves_task.h"
-#include "common_cmd.h"
+
 
 #define TAG "Main"
 
@@ -26,7 +25,9 @@ void app_main(void) {
     uint8_t valves_pins[NUMBER_OF_VALVES] = {GPIO_NUM_2, GPIO_NUM_16};
 
     valves_init(valves_pins);
-    tensometer_init(GPIO_NUM_13, GPIO_NUM_14);
+    load_cell_init(GPIO_NUM_13, GPIO_NUM_14);
+    load_cell_set_raw_offset(0);  // TBD
+    load_cell_set_scale(1);  // TBD
 
     esp_console_config_t console_config = {
         .max_cmdline_args = 8,
@@ -36,7 +37,7 @@ void app_main(void) {
 
     cmd_register_common();
     cmd_register_valves();
-    cmd_register_tensometer();
+    cmd_register_load_cell();
     cli_init(console_config.max_cmdline_length);
     cli_run();
 }

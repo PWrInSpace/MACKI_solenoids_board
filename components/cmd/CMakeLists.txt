@@ -1,5 +1,5 @@
 idf_component_register(SRC_DIRS "."
                        INCLUDE_DIRS "."
-                       REQUIRES cmock driver esp_timer esp_rom)
+                       REQUIRES cmock valves load_cell cli)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-format" "-Wall" "-Werror")
