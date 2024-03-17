@@ -2,7 +2,17 @@
 #include "esp_log.h"
 #include "esp_console.h"
 #include "cli_task.h"
+<<<<<<< HEAD
 #include "ble_task.h"
+=======
+#include "driver/gpio.h"
+
+#include "cmd.h"
+#include "load_cell.h"
+#include "valves_task.h"
+
+
+>>>>>>> main
 #define TAG "Main"
 
 void app_main(void) {
@@ -16,13 +26,22 @@ void app_main(void) {
            "_|      _|  _|    _|    _|_|_|  _|    _|  _|_|_|\n"
            "\n\033[0m");
 
-    /* Register commands */
+    uint8_t valves_pins[NUMBER_OF_VALVES] = {GPIO_NUM_2, GPIO_NUM_16};
+
+    valves_init(valves_pins);
+    load_cell_init(GPIO_NUM_13, GPIO_NUM_14);
+    load_cell_set_raw_offset(0);  // TBD
+    load_cell_set_scale(1);  // TBD
+
     esp_console_config_t console_config = {
         .max_cmdline_args = 8,
         .max_cmdline_length = 256,
     };
     esp_console_init(&console_config);
 
+    cmd_register_common();
+    cmd_register_valves();
+    cmd_register_load_cell();
     cli_init(console_config.max_cmdline_length);
     cli_run();
     ble_init_task(NULL);
