@@ -18,8 +18,7 @@ const uint16_t character_declaration_uuid = ESP_GATT_UUID_CHAR_DECLARE;
 const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
 const uint8_t char_prop_read = ESP_GATT_CHAR_PROP_BIT_READ;
 const uint8_t char_prop_write = ESP_GATT_CHAR_PROP_BIT_WRITE;
-const uint8_t char_prop_read_write_notify =
-    ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+const uint8_t char_prop_read_write = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ;
 
 /*! \brief Project specific constants */
 #define GATTS_MACKI_CHAR_VAL_LEN_MAX 500
@@ -45,7 +44,7 @@ static uint8_t raw_scan_rsp_data[] = {
     /* service uuid */
     0x03, 0x03, 0xFF, 0x00};
 
-const uint8_t char_value[4] = {0x11, 0x22, 0x33, 0x44};
+const uint8_t char_value[4] = {0x69, 0x42, 0x04, 0x20};
 
 /*! \brief Project specific GATT profile defines,
  *  \note READ means server (ESP32) read, analogically write means server (ESP32) write
@@ -82,7 +81,7 @@ static ble_config_t ble_conf = {.gap_config = &ble_gap_conf,
                                 .bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT()};
 
 // TODO(Glibus): in the future, look how gatts database could be defined with 128bit UUIDs
-static uint16_t profile_a_handle_table[CONSOLE_MAX_IDX];
+static uint16_t profile_macki_handle_table[CONSOLE_MAX_IDX];
 const esp_gatts_attr_db_t gatt_profile_macki_db[CONSOLE_MAX_IDX] = {
     [CONSOLE_SERVICE_IDX] = {{ESP_GATT_AUTO_RSP},
                              {ESP_UUID_LEN_16, (uint8_t*)&primary_service_uuid, ESP_GATT_PERM_READ,
@@ -100,7 +99,7 @@ const esp_gatts_attr_db_t gatt_profile_macki_db[CONSOLE_MAX_IDX] = {
     [CONSOLE_WRITE_IDX] = {{ESP_GATT_AUTO_RSP},
                            {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid,
                             ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE,
-                            (uint8_t*)&char_prop_write}},
+                            (uint8_t*)&char_prop_read_write}},
     [CONSOLE_WRITE_VAL_IDX] = {
         {ESP_GATT_AUTO_RSP},
         {ESP_UUID_LEN_16, (uint8_t*)&GATTS_CONSOLE_WRITE_CHAR_UUID,
@@ -150,6 +149,7 @@ void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* par
     }
 }
 
+// TODO(Gliwus): In the future, refactor it to encapsulate each case in a separate function
 void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                         esp_ble_gatts_cb_param_t* param) {
     switch (event) {
@@ -189,48 +189,50 @@ void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOGI(BLE_APP_TAG,
                          "create attribute table successfully, the number handle = %d\n",
                          param->add_attr_tab.num_handle);
-                memcpy(profile_a_handle_table, param->add_attr_tab.handles,
-                       sizeof(profile_a_handle_table));
-                esp_ble_gatts_start_service(profile_a_handle_table[CONSOLE_SERVICE_IDX]);
+                memcpy(profile_macki_handle_table, param->add_attr_tab.handles,
+                       sizeof(profile_macki_handle_table));
+                esp_ble_gatts_start_service(profile_macki_handle_table[CONSOLE_SERVICE_IDX]);
             }
             break;
         case ESP_GATTS_WRITE_EVT:
             if (!param->write.is_prep) {
                 // the data length of gattc write  must be less than
                 // GATTS_DEMO_CHAR_VAL_LEN_MAX.
-                // ESP_LOGI(BLE_APP_TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :",
-                //          param->write.handle, param->write.len);
-                // esp_log_buffer_hex(BLE_APP_TAG, param->write.value, param->write.len);
-                // if (profile_a_handle_table[IDX_CHAR_CFG_A] == param->write.handle &&
-                //     param->write.len == 2) {
-                //     uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
-                //     if (descr_value == 0x0001) {
-                //         ESP_LOGI(BLE_APP_TAG, "notify enable");
-                //         uint8_t notify_data[15];
-                //         for (int i = 0; i < sizeof(notify_data); ++i) {
-                //             notify_data[i] = i % 0xff;
-                //         }
-                //         // the size of notify_data[] need less than MTU size
-                //         esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id,
-                //                                     profile_a_handle_table[CONSOLE_WRITE_VAL_IDX],
-                //                                     sizeof(notify_data), notify_data, false);
-                //     } else if (descr_value == 0x0002) {
-                //         ESP_LOGI(BLE_APP_TAG, "indicate enable");
-                //         uint8_t indicate_data[15];
-                //         for (int i = 0; i < sizeof(indicate_data); ++i) {
-                //             indicate_data[i] = i % 0xff;
-                //         }
-                //         // the size of indicate_data[] need less than MTU size
-                //         esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id,
-                //                                     profile_a_handle_table[CONSOLE_WRITE_VAL_IDX],
-                //                                     sizeof(indicate_data), indicate_data, true);
-                //     } else if (descr_value == 0x0000) {
-                //         ESP_LOGI(BLE_APP_TAG, "notify/indicate disable ");
-                //     } else {
-                //         ESP_LOGE(BLE_APP_TAG, "unknown descr value");
-                //         esp_log_buffer_hex(BLE_APP_TAG, param->write.value, param->write.len);
-                //     }
-                // }
+                ESP_LOGI(BLE_APP_TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :",
+                         param->write.handle, param->write.len);
+                esp_log_buffer_hex(BLE_APP_TAG, param->write.value, param->write.len);
+                if (profile_macki_handle_table[CONSOLE_MAX_IDX] == param->write.handle &&
+                    param->write.len == 2) {
+                    uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
+                    if (descr_value == 0x0001) {
+                        ESP_LOGI(BLE_APP_TAG, "notify enable");
+                        uint8_t notify_data[15];
+                        for (int i = 0; i < sizeof(notify_data); ++i) {
+                            notify_data[i] = i % 0xff;
+                        }
+                        // the size of notify_data[] need less than MTU size
+                        esp_ble_gatts_send_indicate(
+                            gatts_if, param->write.conn_id,
+                            profile_macki_handle_table[CONSOLE_WRITE_VAL_IDX], sizeof(notify_data),
+                            notify_data, false);
+                    } else if (descr_value == 0x0002) {
+                        ESP_LOGI(BLE_APP_TAG, "indicate enable");
+                        uint8_t indicate_data[15];
+                        for (int i = 0; i < sizeof(indicate_data); ++i) {
+                            indicate_data[i] = i % 0xff;
+                        }
+                        // the size of indicate_data[] need less than MTU size
+                        esp_ble_gatts_send_indicate(
+                            gatts_if, param->write.conn_id,
+                            profile_macki_handle_table[CONSOLE_WRITE_VAL_IDX],
+                            sizeof(indicate_data), indicate_data, true);
+                    } else if (descr_value == 0x0000) {
+                        ESP_LOGI(BLE_APP_TAG, "notify/indicate disable ");
+                    } else {
+                        ESP_LOGE(BLE_APP_TAG, "unknown descr value");
+                        esp_log_buffer_hex(BLE_APP_TAG, param->write.value, param->write.len);
+                    }
+                }
                 /* send response when param->write.need_rsp is true*/
                 // if (param->write.need_rsp) {
                 //     esp_ble_gatts_send_response(gatts_if, param->write.conn_id,
@@ -238,14 +240,14 @@ void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 // }
             } else {
                 /* handle prepare write */
-                example_prepare_write_event_env(gatts_if, &prepare_write_env, param);
+                console_prepare_write_event_env(gatts_if, &prepare_write_env, param);
             }
             break;
         case ESP_GATTS_EXEC_WRITE_EVT:
             // the length of gattc prepare write data must be less than
             // GATTS_DEMO_CHAR_VAL_LEN_MAX.
             ESP_LOGI(BLE_APP_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-            example_exec_write_event_env(&prepare_write_env, param);
+            console_exec_write_event_env(&prepare_write_env, param);
             break;
         case ESP_GATTS_READ_EVT:
             ESP_LOGI(BLE_APP_TAG, "ESP_GATTS_READ_EVT");
@@ -321,7 +323,7 @@ void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
     } while (0);
 }
 
-void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t* prepare_write_env,
+void console_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t* prepare_write_env,
                                      esp_ble_gatts_cb_param_t* param) {
     ESP_LOGI(BLE_APP_TAG, "prepare write, handle = %d, value len = %d", param->write.handle,
              param->write.len);
@@ -367,7 +369,7 @@ void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t*
     prepare_write_env->prepare_len += param->write.len;
 }
 
-void example_exec_write_event_env(prepare_type_env_t* prepare_write_env,
+void console_exec_write_event_env(prepare_type_env_t* prepare_write_env,
                                   esp_ble_gatts_cb_param_t* param) {
     if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC &&
         prepare_write_env->prepare_buf) {
