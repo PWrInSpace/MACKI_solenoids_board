@@ -2,9 +2,7 @@
 #include "esp_log.h"
 #include "esp_console.h"
 #include "cli_task.h"
-<<<<<<< HEAD
 #include "ble_task.h"
-=======
 #include "driver/gpio.h"
 
 #include "cmd.h"
@@ -12,7 +10,6 @@
 #include "valves_task.h"
 
 
->>>>>>> main
 #define TAG "Main"
 
 void app_main(void) {
