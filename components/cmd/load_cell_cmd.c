@@ -13,8 +13,7 @@ static struct {
 
 static int cmd_load_cell_tare(int argc, char **argv) {
     if (load_cell_tare() == false) {
-        CLI_WRITE_E("Unable to tare load_cell");
-        return 1;
+        return LOAD_CELL_UNABLE_TO_TARE;
     }
 
     int32_t offset = load_cell_get_raw_offset();
@@ -27,12 +26,11 @@ static int cmd_load_cell_calibrate(int argc, char **argv) {
     int nerrors = arg_parse(argc, argv, (void **) &args_calibrate);
     if (nerrors != 0) {
         arg_print_errors(stderr, args_calibrate.end, argv[0]);
-        return 1;
+        return LOAD_CELL_ARG_PARSE;
     }
 
     if (load_cell_calibrate(args_calibrate.known_weight->dval[0]) == false) {
-        CLI_WRITE_E("Unable to calibrate load_cell");
-        return 1;
+        return LOAD_CELL_UNABLE_TO_CALIBRAT;
     }
 
     float scale = load_cell_get_scale();

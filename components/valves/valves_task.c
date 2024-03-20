@@ -125,8 +125,14 @@ bool valves_init(uint8_t valves_pins[NUMBER_OF_VALVES]) {
         goto abort;
     }
 
-    xTaskCreatePinnedToCore(_valves_task, "ValvesTask", 8192,
-                            NULL, 0, &rtos.task_handle, 1);
+    xTaskCreatePinnedToCore(
+        _valves_task,
+        "ValvesTask",
+        VALVES_TASK_STACK_DEPTH,
+        NULL,
+        VALVES_TASK_PRIORITY,
+        &rtos.task_handle,
+        VALVES_TASK_CPU_NUM);
     if (rtos.task_handle == NULL) {
         goto abort;
     }
