@@ -17,20 +17,20 @@ static int _parse_move(int argc, char**argv) {
     int nerrors = arg_parse(argc, argv, (void **) &args_move);
     if (nerrors != 0) {
         arg_print_errors(stderr, args_move.end, argv[0]);
-        return 1;
+        return SMOTOR_ARG_PARSE;
     }
 
     if (args_move.motor_number->ival[0] >= MAX_NUMBER_OF_MOTORS) {
-        return 2;
+        return SMOTOR_ARG_MOTOR_NUMBER;
     }
 
-    if (args_move.direction->ival[0] == CLOCKWISE  &&
-        args_move.direction->ival[0] == COUNTER_CLOCKWISE) {
-        return 3;
+    if (args_move.direction->ival[0] != CLOCKWISE &&
+        args_move.direction->ival[0] != COUNTER_CLOCKWISE) {
+        return SMOTOR_ARG_DIRECTION;
     }
 
     if (args_move.steps->ival[0] < 0) {
-        return 4;
+        return SMOTOR_ARG_STEPS;
     }
 
     return 0;
@@ -49,8 +49,7 @@ static int cmd_stepper_motor_move(int argc, char **argv) {
     };
 
     if (stepper_motor_run_on_task(&move_cfg) == false) {
-        CLI_WRITE_E("Unable to run motor :C");
-        return 1;
+        return SMOTOR_RUN;
     }
 
     CLI_WRITE_G("Motor %d is running, steps %d",
