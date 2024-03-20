@@ -11,4 +11,6 @@ bool cmd_register_valves(void);
 
 bool cmd_register_load_cell(void);
 
+bool cmd_register_stepper_motor(void);
+
 #endif

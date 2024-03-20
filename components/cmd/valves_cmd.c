@@ -16,7 +16,7 @@ static struct {
     struct arg_end *end;
 } args_time_open;
 
-static int parse_open_close(int argc, char**argv) {
+static int _parse_open_close(int argc, char**argv) {
     int nerrors = arg_parse(argc, argv, (void **) &args_open_close);
     if (nerrors != 0) {
         arg_print_errors(stderr, args_open_close.end, argv[0]);
@@ -31,7 +31,7 @@ static int parse_open_close(int argc, char**argv) {
 }
 
 static int cmd_valve_open(int argc, char **argv) {
-    int ret = parse_open_close(argc, argv);
+    int ret = _parse_open_close(argc, argv);
     if (ret != 0) {
         return ret;
     }
@@ -43,7 +43,7 @@ static int cmd_valve_open(int argc, char **argv) {
 }
 
 static int cmd_valve_close(int argc, char **argv) {
-    int ret = parse_open_close(argc, argv);
+    int ret = _parse_open_close(argc, argv);
     if (ret != 0) {
         return ret;
     }

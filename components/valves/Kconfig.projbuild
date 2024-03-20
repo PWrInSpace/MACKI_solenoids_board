@@ -1,19 +1,15 @@
-menu "CLI task"
-    config CLI_PROMPT
-        string "Prompt message"
-        default ""
-
-    config CLI_TASK_STACK_DEPTH
+menu "Valves"
+    config VALVES_TASK_STACK_DEPTH
         int "Task stack depth"
         range 1024 65536
         default 4096
 
-    config CLI_TASK_PRIORITY
+    config VALVES_TASK_PRIORITY
         int "Task prioirty"
         range 0 20
         default 0
 
-    config CLI_TASK_CPU
+    config VALVES_TASK_CPU
         int "Cpu which the task should be pinned to"
         range 0 1
         default 0
