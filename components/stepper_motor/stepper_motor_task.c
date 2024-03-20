@@ -4,12 +4,10 @@
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/semphr.h>
 #include <memory.h>
 #include "esp_log.h"
 
-#define TAG "DUPA"
-
-#include "freertos/semphr.h"
 
 typedef struct {
     TaskHandle_t task_handle;

@@ -6,9 +6,6 @@
 #include <rom/ets_sys.h>
 #include "A4988.h"
 #include "sdkconfig.h"
-#include "esp_log.h"
-
-#define TAG "DUPSKO"
 
 #define HIGH 1
 #define LOW 0
@@ -16,7 +13,7 @@
 // I found out by experiment that the minimum time for esp is 600 us.
 #define KOWALSKI_CONST_DELAY_US 600
 // The datasheet says it is 200ns, the minimum amount of time that we can stop is 1 us
-#define DIRE_STEP_DELAY_US 1
+#define DIRECTION_STEP_DELAY_US 1
 
 bool A4988_init(A4988_t *dev) {
     esp_err_t err = ESP_OK;
@@ -36,7 +33,7 @@ bool A4988_move(A4988_t *dev, A4988_direction_t direction, size_t number_of_step
         return false;
     }
 
-    ets_delay_us(DIRE_STEP_DELAY_US);
+    ets_delay_us(DIRECTION_STEP_DELAY_US);
     for (size_t i = 0; i < number_of_steps; i++) {
         err |= gpio_set_level(dev->step_pin, HIGH);
         ets_delay_us(KOWALSKI_CONST_DELAY_US);
