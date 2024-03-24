@@ -6,20 +6,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "esp_console.h"
+#include "cmd.h"
 
 
 #define CLI_PROMPT CONFIG_CLI_PROMPT
 #define CLI_TASK_STACK_DEPTH CONFIG_CLI_TASK_STACK_DEPTH
 #define CLI_TASK_PRIORITY CONFIG_CLI_TASK_PRIORITY
 #define CLI_TASK_CPU_NUM CONFIG_CLI_TASK_CPU
-
-// USE MACROS ONLY IN CLI COMMANDS OR CLI ENVIROMENT
-// Print ok message
-#define CLI_WRITE_G(format, ...) printf("OK: "format"\n", ##__VA_ARGS__)
-// Print error message to default stream
-#define CLI_WRITE_E(format, ...) printf("ERR: "format"\n", ##__VA_ARGS__)
-// Print to default stream
-#define CLI_WRITE(format, ...) printf(format"\n", ##__VA_ARGS__)
 
 bool cli_init(uint8_t command_max_len);
 

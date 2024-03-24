@@ -45,12 +45,12 @@ static uint8_t raw_scan_rsp_data[] = {
     0x03, 0x03, 0xFF, 0x00};
 
 // COMMANDS
-#define COMMAND_BUF_LEN 128
+#define COMMAND_BUF_LEN 256
 static char command_buf[COMMAND_BUF_LEN] = "";
-static char reply_buf[COMMAND_BUF_LEN] = "App started: no errors encountered";
-static QueueHandle_t* bleQueue;
+static char reply_buf[COMMAND_BUF_LEN] = "";
 
-
+static QueueHandle_t* ble_queue;
+static TaskHandle_t ble_task_handle;
 /*! \brief Project specific GATT profile defines,
  *  \note READ means server (ESP32) read, analogically write means server (ESP32) write
  */
@@ -98,7 +98,7 @@ const esp_gatts_attr_db_t gatt_profile_macki_db[CONSOLE_MAX_IDX] = {
                            (uint8_t*)&char_prop_read}},
     [CONSOLE_READ_VAL_IDX] = {{ESP_GATT_AUTO_RSP},
                               {ESP_UUID_LEN_16, (uint8_t*)&GATTS_CONSOLE_READ_CHAR_UUID,
-                               ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+                               ESP_GATT_PERM_READ,
                                GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(reply_buf),
                                (uint8_t*)&reply_buf}},
     [CONSOLE_WRITE_IDX] = {{ESP_GATT_AUTO_RSP},
@@ -394,17 +394,15 @@ void console_exec_write_event_env(prepare_type_env_t* prepare_write_env,
 void parse_cli_command(char* command) {
     ESP_LOGI(BLE_APP_TAG, "Command: %s", command);
     int return_code;
-
     esp_err_t err = esp_console_run(command, &return_code);
     if (err == ESP_ERR_NOT_FOUND) {
-        strcpy(reply_buf, "Unrecognized command");
+        CLI_WRITE_E("Unrecognized command\n");
     } else if (err == ESP_OK && return_code != ESP_OK) {
         // CLI_WRITE_E("Command returned non-zero error code: 0x%x (%s)\n",
         // return_code, esp_err_to_name(return_code));
     } else if (err != ESP_OK && err != ESP_ERR_INVALID_ARG) {
-        sprintf(reply_buf, "Internal error: %s\n", esp_err_to_name(err));
-    } else if (err == ESP_OK){
-
+        CLI_WRITE_E("Internal error: %s\n", esp_err_to_name(err));
+    } else if (err == ESP_OK) {
     }
 }
 
@@ -413,9 +411,26 @@ void ble_init_task(void* arg) {
         ESP_LOGE(BLE_APP_TAG, "BLE init failed: %s", __func__);
         return;
     }
+    ble_queue = cmd_ble_queue_init();
+    // init ble task
+    xTaskCreatePinnedToCore(ble_task, "ble_task", 4096, NULL, 5, &ble_task_handle, 1);
 
     ESP_LOGI(BLE_APP_TAG, "BLE init done");
 
     // ESP_LOGI(BLE_APP_TAG, "%d", ble_conf.bt_cfg);
     //   vTaskDelete(NULL);
+}
+
+void ble_task(void* arg) {
+    ESP_LOGI(BLE_APP_TAG, "BLE task started");
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    while (1) {
+        if (xQueueReceive(*ble_queue, reply_buf, 0)) {
+
+            printf("BLE: %s\n", reply_buf);
+        }
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+
+    vTaskDelete(NULL);
 }

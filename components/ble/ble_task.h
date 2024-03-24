@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "esp_console.h"
+#include "cmd.h"
 
 #define BLE_DEVICE_NAME "MACKI"
 
@@ -52,3 +53,5 @@ void parse_cli_command(char* command);
  * \param arg - pointer to the argument passed to the task - not used, can be NULL
  */
 void ble_init_task(void* arg);
+
+void ble_task(void* arg);
