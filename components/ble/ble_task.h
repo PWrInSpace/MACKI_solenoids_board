@@ -9,6 +9,8 @@
 #include "ble_gatt_conf.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
+#include "esp_console.h"
 
 #define BLE_DEVICE_NAME "MACKI"
 
@@ -41,6 +43,8 @@ void console_exec_write_event_env(prepare_type_env_t* prepare_write_env,
 
 void console_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t* prepare_write_env,
                                      esp_ble_gatts_cb_param_t* param);
+
+void parse_cli_command(char* command);
 
 /*!
  * \brief Initialize BLE stack and start advertising. Can be called as RTOS task if necessary - not

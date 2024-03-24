@@ -44,7 +44,12 @@ static uint8_t raw_scan_rsp_data[] = {
     /* service uuid */
     0x03, 0x03, 0xFF, 0x00};
 
-const uint8_t char_value[4] = {0x69, 0x42, 0x04, 0x20};
+// COMMANDS
+#define COMMAND_BUF_LEN 128
+static char command_buf[COMMAND_BUF_LEN] = "";
+static char reply_buf[COMMAND_BUF_LEN] = "App started: no errors encountered";
+static QueueHandle_t* bleQueue;
+
 
 /*! \brief Project specific GATT profile defines,
  *  \note READ means server (ESP32) read, analogically write means server (ESP32) write
@@ -94,8 +99,8 @@ const esp_gatts_attr_db_t gatt_profile_macki_db[CONSOLE_MAX_IDX] = {
     [CONSOLE_READ_VAL_IDX] = {{ESP_GATT_AUTO_RSP},
                               {ESP_UUID_LEN_16, (uint8_t*)&GATTS_CONSOLE_READ_CHAR_UUID,
                                ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-                               GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(char_value),
-                               (uint8_t*)&char_value}},
+                               GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(reply_buf),
+                               (uint8_t*)&reply_buf}},
     [CONSOLE_WRITE_IDX] = {{ESP_GATT_AUTO_RSP},
                            {ESP_UUID_LEN_16, (uint8_t*)&character_declaration_uuid,
                             ESP_GATT_PERM_READ, CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE,
@@ -103,8 +108,8 @@ const esp_gatts_attr_db_t gatt_profile_macki_db[CONSOLE_MAX_IDX] = {
     [CONSOLE_WRITE_VAL_IDX] = {
         {ESP_GATT_AUTO_RSP},
         {ESP_UUID_LEN_16, (uint8_t*)&GATTS_CONSOLE_WRITE_CHAR_UUID,
-         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, GATTS_MACKI_CHAR_VAL_LEN_MAX, sizeof(char_value),
-         (uint8_t*)&char_value}}};
+         ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE, GATTS_MACKI_CHAR_VAL_LEN_MAX,
+         sizeof(command_buf), (uint8_t*)&command_buf}}};
 
 void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t* param) {
     switch (event) {
@@ -201,6 +206,7 @@ void gatt_profile_console_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOGI(BLE_APP_TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :",
                          param->write.handle, param->write.len);
                 esp_log_buffer_hex(BLE_APP_TAG, param->write.value, param->write.len);
+                parse_cli_command((char*)param->write.value);
                 if (profile_macki_handle_table[CONSOLE_MAX_IDX] == param->write.handle &&
                     param->write.len == 2) {
                     uint16_t descr_value = param->write.value[1] << 8 | param->write.value[0];
@@ -383,6 +389,23 @@ void console_exec_write_event_env(prepare_type_env_t* prepare_write_env,
         prepare_write_env->prepare_buf = NULL;
     }
     prepare_write_env->prepare_len = 0;
+}
+
+void parse_cli_command(char* command) {
+    ESP_LOGI(BLE_APP_TAG, "Command: %s", command);
+    int return_code;
+
+    esp_err_t err = esp_console_run(command, &return_code);
+    if (err == ESP_ERR_NOT_FOUND) {
+        strcpy(reply_buf, "Unrecognized command");
+    } else if (err == ESP_OK && return_code != ESP_OK) {
+        // CLI_WRITE_E("Command returned non-zero error code: 0x%x (%s)\n",
+        // return_code, esp_err_to_name(return_code));
+    } else if (err != ESP_OK && err != ESP_ERR_INVALID_ARG) {
+        sprintf(reply_buf, "Internal error: %s\n", esp_err_to_name(err));
+    } else if (err == ESP_OK){
+
+    }
 }
 
 void ble_init_task(void* arg) {
